@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import rospy
 from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import PoseWithCovariance, TransformStamped, Vector3, Point, PoseWithCovarianceStamped
