@@ -19,6 +19,7 @@ def tf_callback(msg):
     global tf_listener
     if sec_since_last_update < rospy.Time.now():
         try:
+            tf_listener.waitForTransform("/map", "vr_tracker_right", rospy.Time(0), rospy.Duration(0.4))
             pose = tf_listener.lookupTransform("/map", "/vr_tracker_right", rospy.Time(0))
         except Exception as e:
             print(e)
