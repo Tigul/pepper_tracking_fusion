@@ -19,8 +19,9 @@ def tf_callback(msg):
     global tf_listener
     if sec_since_last_update < rospy.Time.now():
         try:
-            pose = tf_listener.lookupTransform("/map", "/vr_tracker_left", rospy.Time(0))
-        except:
+            pose = tf_listener.lookupTransform("/map", "/vr_tracker_right", rospy.Time(0))
+        except Exception as e:
+            print(e)
             print("No Transform found for: vr_controller_right")
         tracker_pose = pose[0]
         publish_new_tf()
@@ -68,7 +69,7 @@ def publish_new_tf():
     #print(tf_msg)
     print(odom)
     tf_pub.publish(tf_msg)
-    pose_pub.publish(odom)
+    #pose_pub.publish(odom)
 
 
 if __name__ == '__main__':
