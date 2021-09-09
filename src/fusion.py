@@ -4,6 +4,7 @@ import rospy
 from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import PoseWithCovariance, TransformStamped, Vector3, Point, PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Imu
 import tf
 import time
 
@@ -13,13 +14,14 @@ tf_pub = None
 sec_since_last_update = None
 tf_listener = None
 pose_pub = None
+pepper_twist = None
 
 def tf_callback(msg):
     global tracker_pose
     global tf_listener
     if sec_since_last_update < rospy.Time.now():
         try:
-            tf_listener.waitForTransform("/map", "vr_tracker_right", rospy.Time(0), rospy.Duration(0.4))
+            #tf_listener.waitForTransform("/map", "vr_tracker_right", rospy.Time(0), rospy.Duration(0.4))
             pose = tf_listener.lookupTransform("/map", "/vr_tracker_right", rospy.Time(0))
         except Exception as e:
             print(e)
@@ -36,6 +38,18 @@ def amcl_callback(msg):
     if sec_since_last_update < rospy.Time.now():
         publish_new_tf()
 
+def imu_callback(msg):
+    global amcl_orientation
+    amcl_orientation = msg.orientation
+    if sec_since_last_update < rospy.Time.now():
+        publish_new_tf()
+
+def pepper_odom_callback(msg):
+    global pepper_twist
+    pepper_twist = msg.twist
+    if sec_since_last_update < rospy.Time.now():
+        publish_new_tf()
+
 def publish_new_tf():
     global sec_since_last_update
     sec_since_last_update = rospy.Time.now()
@@ -43,6 +57,7 @@ def publish_new_tf():
     global amcl_orientation
     global tf_pub
     global pose_pub
+    global pepper_twist
 
     pose_cov = PoseWithCovariance()
 
@@ -64,20 +79,23 @@ def publish_new_tf():
     odom.child_frame_id = "base"
     odom.header.frame_id = "map"
     odom.header.stamp = rospy.Time.now()
+    odom.twist = pepper_twist
 
 
     tf_msg.transforms.append(msg)
     #print(tf_msg)
     print(odom)
     tf_pub.publish(tf_msg)
-    #pose_pub.publish(odom)
+    pose_pub.publish(odom)
 
 
 if __name__ == '__main__':
     #global tf_pub
     rospy.init_node('fusion_tracking')
     rospy.Subscriber("/tf", TFMessage, tf_callback)
-    rospy.Subscriber("/pepper_robot/amcl_pose", PoseWithCovarianceStamped, amcl_callback)
+    #rospy.Subscriber("/pepper_robot/amcl_pose", PoseWithCovarianceStamped, amcl_callback)
+    rospy.Subscriber("/pepper_robot/naoqi_driver/imu/base", Imu, imu_callback)
+    rospy.Subscriber("/pepper_robot/naoqi_driver/odom", Odometry, pepper_odom_callback)
     tf_pub = rospy.Publisher("/tf", TFMessage, queue_size=10)
     pose_pub = rospy.Publisher("/odom", Odometry, queue_size=10)
     sec_since_last_update = rospy.Time.now()
